@@ -9,14 +9,11 @@ from visualization import visualize_sentiments, generate_wordcloud
 from report_generator import export_report, generate_streamlit_report
 from context_analysis import ContextAnalyzer
 from emotion_classifier import EmotionClassifier
-#from trend_analyzer import TrendAnalyzer
 from socio_emotional import SocioEmotionalAnalyzer
 import time
 import seaborn as sns
-# Configuration de la page (doit être le premier appel Streamlit)
-#st.set_page_config(page_title="Analyse des Avis Patients", layout="wide")
 
-# CSS personnalisé pour améliorer l'interface
+# CSS personnalisé
 st.markdown("""
 <style>
     .main-header {
@@ -40,7 +37,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Initialisation des données de cache de page
+# Initialisation des données de cache
 if 'df_cache' not in st.session_state:
     st.session_state.df_cache = None
 if 'analysis_complete' not in st.session_state:
@@ -51,8 +48,8 @@ if 'socio_analyzed' not in st.session_state:
     st.session_state.socio_analyzed = False
 if 'context_analyzed' not in st.session_state:
     st.session_state.context_analyzed = False
-@st.cache_data
-# Fonction pour exécuter l'analyse de sentiment
+
+# Fonctions d'analyse (sans cache pour éviter les erreurs)
 def run_sentiment_analysis(df, lang):
     sentiments_scores = []
     progress_bar = st.progress(0)
@@ -62,8 +59,7 @@ def run_sentiment_analysis(df, lang):
     df["Sentiment"], df["Score"] = zip(*sentiments_scores)
     progress_bar.empty()
     return df
-@st.cache_data
-# Fonction pour exécuter l'analyse avancée
+
 def run_advanced_analysis(df, lang):
     progress_bar = st.progress(0)
     advanced_results = []
@@ -71,10 +67,9 @@ def run_advanced_analysis(df, lang):
         advanced_results.append(analyze_text_advanced(review, lang))
         progress_bar.progress((i + 1) / len(df))
     df["Advanced"] = advanced_results
-    progress_bar.empty()  # Effacer la barre de progression
+    progress_bar.empty()
     return df
-@st.cache_data
-# Fonction pour exécuter l'analyse de contexte
+
 def run_context_analysis(df, lang):
     progress_bar = st.progress(0)
     context_analyzer = ContextAnalyzer(lang=lang)
@@ -85,8 +80,7 @@ def run_context_analysis(df, lang):
     df["Context"] = context_results
     progress_bar.empty()
     return df
-@st.cache_data
-# Fonction pour exécuter l'analyse des émotions
+
 def run_emotion_analysis(df, lang):
     progress_bar = st.progress(0)
     emotion_classifier = EmotionClassifier(lang=lang)
@@ -102,7 +96,7 @@ def run_emotion_analysis(df, lang):
             if emotion not in emotion_columns:
                 emotion_columns[emotion] = []
             while len(emotion_columns[emotion]) < i:
-                emotion_columns[emotion].append(0)  # Remplir avec des zéros pour les lignes précédentes
+                emotion_columns[emotion].append(0)
             emotion_columns[emotion].append(score)
         
         # Assurer que toutes les colonnes ont la même longueur
@@ -114,15 +108,15 @@ def run_emotion_analysis(df, lang):
     
     # Ajouter les colonnes d'émotions au DataFrame
     for emotion, values in emotion_columns.items():
-        # Normaliser le nom de la colonne
         col_name = f"Emotion_{emotion.replace(' ', '_')}"
         df[col_name] = values
     
-    df["Emotions"] = emotion_results
+    # Convertir en string JSON pour éviter les erreurs pandas
+    import json
+    df["Emotions"] = [json.dumps(result) for result in emotion_results]
     progress_bar.empty()
     return df
-@st.cache_data
-# Fonction pour exécuter l'analyse socio-émotionnelle
+
 def run_socio_emotional_analysis(df, lang):
     progress_bar = st.progress(0)
     socio_analyzer = SocioEmotionalAnalyzer(lang=lang)
@@ -165,7 +159,9 @@ def run_socio_emotional_analysis(df, lang):
         for col_name, values in columns.items():
             df[col_name] = values
     
-    df["SocioEmotional"] = socio_results
+    # Convertir en string JSON pour éviter les erreurs pandas
+    import json
+    df["SocioEmotional"] = [json.dumps(result) for result in socio_results]
     progress_bar.empty()
     return df
 
@@ -277,20 +273,6 @@ if st.session_state.df_cache is not None:
                     plt.xticks(rotation=45, ha="right")
                     plt.tight_layout()
                     st.pyplot(fig)
-            
-            # Dimensions socio-émotionnelles si disponibles
-            if st.session_state.socio_analyzed:
-                st.subheader("Dimensions socio-émotionnelles")
-                dimension_cols = [col for col in df.columns if col.startswith("Dim_")]
-                if dimension_cols:
-                    dim_means = df[dimension_cols].mean().sort_values(ascending=False)
-                    fig, ax = plt.subplots(figsize=(10, 6))
-                    dim_means.plot(kind="bar", ax=ax)
-                    plt.title("Dimensions socio-émotionnelles moyennes")
-                    plt.ylabel("Score moyen")
-                    plt.xticks(rotation=45, ha="right")
-                    plt.tight_layout()
-                    st.pyplot(fig)
         
         with tab2:
             # Visualisation des sentiments
@@ -334,14 +316,14 @@ if st.session_state.df_cache is not None:
                     plt.tight_layout()
                     st.pyplot(fig)
         
-        
+        with tab4:
+            st.write("### Analyse des tendances")
+            st.info("Section en développement - Fonctionnalités avancées d'analyse temporelle")
         
         # Génération de rapport
         if generate_report:
             st.markdown("<h2 class='sub-header'>Génération de rapport</h2>", unsafe_allow_html=True)
             generate_streamlit_report(df, keywords=keywords, lang=lang)
 
-
 else:
     st.info("👈 Veuillez charger un fichier d'avis pour commencer l'analyse.")
-    
