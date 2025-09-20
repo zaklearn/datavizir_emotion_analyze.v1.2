@@ -17,3 +17,5 @@ PyPDF2
 pdfplumber
 tqdm
 textblob
+textblob-fr
+vadersentiment
