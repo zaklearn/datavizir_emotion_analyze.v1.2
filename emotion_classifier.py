@@ -12,46 +12,57 @@ class EmotionClassifier:
         Initialise le modèle d'analyse des émotions avec support multilingue.
         """
         self.lang = lang
-        self._load_model()
+        # Charger les modèles via une fonction statique
+        self._ensure_models_loaded()
         
+    @staticmethod
     @st.cache_resource
-    def _load_model(self):
+    def _load_models():
         """
         Charge les modèles d'analyse des émotions et les met en cache.
+        Fonction statique pour éviter les problèmes de hashing avec self.
         """
+        models = {}
+        
         # Modèle pour l'anglais
-        if "en" not in EmotionClassifier._models:
-            try:
-                EmotionClassifier._models["en"] = pipeline(
-                    "text-classification",
-                    model="j-hartmann/emotion-english-distilroberta-base",
-                    top_k=None
-                )
-                st.success("✅ Modèle d'analyse des émotions (EN) chargé avec succès.")
-            except Exception as e:
-                st.warning(f"⚠️ Erreur lors du chargement du modèle EN: {e}")
-                EmotionClassifier._models["en"] = None
+        try:
+            models["en"] = pipeline(
+                "text-classification",
+                model="j-hartmann/emotion-english-distilroberta-base",
+                top_k=None
+            )
+            st.success("✅ Modèle d'analyse des émotions (EN) chargé avec succès.")
+        except Exception as e:
+            st.warning(f"⚠️ Erreur lors du chargement du modèle EN: {e}")
+            models["en"] = None
                 
         # Modèle pour le français
-        if "fr" not in EmotionClassifier._models:
-            try:
-                EmotionClassifier._models["fr"] = pipeline(
-                    "text-classification",
-                    model="nlptown/bert-base-multilingual-uncased-sentiment",
-                    top_k=1
-                )
-                st.success("✅ Modèle d'analyse des émotions (FR) chargé avec succès.")
-            except Exception as e:
-                st.warning(f"⚠️ Erreur lors du chargement du modèle FR: {e}")
-                EmotionClassifier._models["fr"] = None
+        try:
+            models["fr"] = pipeline(
+                "text-classification",
+                model="nlptown/bert-base-multilingual-uncased-sentiment",
+                top_k=1
+            )
+            st.success("✅ Modèle d'analyse des émotions (FR) chargé avec succès.")
+        except Exception as e:
+            st.warning(f"⚠️ Erreur lors du chargement du modèle FR: {e}")
+            models["fr"] = None
                 
         # VADER comme fallback
-        if "vader" not in EmotionClassifier._models:
-            try:
-                nltk.download("vader_lexicon", quiet=True)
-                EmotionClassifier._models["vader"] = SentimentIntensityAnalyzer()
-            except Exception:
-                EmotionClassifier._models["vader"] = None
+        try:
+            nltk.download("vader_lexicon", quiet=True)
+            models["vader"] = SentimentIntensityAnalyzer()
+        except Exception:
+            models["vader"] = None
+            
+        return models
+    
+    def _ensure_models_loaded(self):
+        """
+        S'assure que les modèles sont chargés dans le cache de classe.
+        """
+        if not EmotionClassifier._models:
+            EmotionClassifier._models = self._load_models()
 
     def classify(self, text):
         """
