@@ -17,7 +17,6 @@ PyMuPDF
 PyPDF2
 pdfplumber
 tqdm
-tempfile
 os-sys
 textblob
 wordcloud
