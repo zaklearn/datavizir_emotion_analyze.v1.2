@@ -8,7 +8,7 @@ import streamlit as st
 import os
 
 # Précise les modèles à l'avance et optimisation du chargement avec cache
-@st.cache_resource
+@st.cache_resource(allow_output_mutation=True)
 def load_spacy_models():
     """
     Charge et met en cache les modèles SpaCy avec fallback pour Streamlit Cloud.
@@ -28,7 +28,7 @@ def load_spacy_models():
 # Chargement des modèles au démarrage
 nlp_en, nlp_fr = load_spacy_models()
 # Chargement de VADER avec cache
-@st.cache_resource
+@st.cache_resource(allow_output_mutation=True)
 def load_vader():
     """
     Charge et met en cache le modèle VADER.
@@ -56,7 +56,7 @@ def load_spacy_model(lang):
     else:
         return nlp_en
 
-@st.cache_data(allow_output_mutation=True)
+@st.cache_data
 def analyze_sentiment(text, lang):
     """
     Analyse de sentiment de base :
@@ -90,7 +90,7 @@ def analyze_sentiment(text, lang):
         sentiment = "Neutre"
     return sentiment, score
 
-@st.cache_data(allow_output_mutation=True)
+@st.cache_data
 def analyze_text_advanced(text, lang):
     """
     Réalise une analyse avancée du texte avec spaCy :
@@ -142,7 +142,7 @@ def analyze_text_advanced(text, lang):
         "adjectives": adjectives
     }
 
-@st.cache_data(allow_output_mutation=True)
+@st.cache_data
 def get_tfidf_keywords(corpus, lang, max_features=20):
     """
     Extrait les mots-clés du corpus d'avis en utilisant TF-IDF.
@@ -193,7 +193,7 @@ def get_tfidf_keywords(corpus, lang, max_features=20):
     return list(feature_names)
 
 # Intégration avec EmotionClassifier et SocioEmotionalAnalyzer
-@st.cache_data(allow_output_mutation=True)
+@st.cache_data
 def get_combined_analysis(text, lang, emotion_classifier=None, socio_analyzer=None):
     """
     Combine les analyses de sentiment, d'émotion et socio-émotionnelle.
