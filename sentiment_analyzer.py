@@ -9,9 +9,10 @@ import os
 
 # Précise les modèles à l'avance et optimisation du chargement avec cache
 @st.cache_resource
+@st.cache_resource
 def load_spacy_models():
     """
-    Charge et met en cache les modèles SpaCy.
+    Charge et met en cache les modèles SpaCy avec fallback pour Streamlit Cloud.
     """
     try:
         import en_core_web_sm
@@ -21,20 +22,12 @@ def load_spacy_models():
         st.success("✅ Modèles SpaCy chargés avec succès")
         return nlp_en, nlp_fr
     except ImportError:
-        # Ajouter un message visible au démarrage
-        st.warning("⚠️ Installation des modèles SpaCy nécessaires...")
-        os.system("python -m spacy download en_core_web_sm")
-        os.system("python -m spacy download fr_core_news_sm")
-        import en_core_web_sm
-        import fr_core_news_sm
-        nlp_en = en_core_web_sm.load()
-        nlp_fr = fr_core_news_sm.load()
-        st.success("✅ Modèles SpaCy chargés avec succès")
-        return nlp_en, nlp_fr
+        # Sur Streamlit Cloud, les modèles ne peuvent pas être installés dynamiquement
+        st.warning("⚠️ Modèles SpaCy non disponibles - Fonctionnalités limitées à TextBlob et VADER")
+        return None, None
 
 # Chargement des modèles au démarrage
 nlp_en, nlp_fr = load_spacy_models()
-
 # Chargement de VADER avec cache
 @st.cache_resource
 def load_vader():
