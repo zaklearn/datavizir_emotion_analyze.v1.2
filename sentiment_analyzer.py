@@ -7,8 +7,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 import streamlit as st
 import os
 
-# Précise les modèles à l'avance et optimisation du chargement avec cache
-@st.cache_resource(allow_output_mutation=True)
+@st.cache_resource
 def load_spacy_models():
     """
     Charge et met en cache les modèles SpaCy avec fallback pour Streamlit Cloud.
@@ -21,14 +20,13 @@ def load_spacy_models():
         st.success("✅ Modèles SpaCy chargés avec succès")
         return nlp_en, nlp_fr
     except ImportError:
-        # Sur Streamlit Cloud, les modèles ne peuvent pas être installés dynamiquement
         st.warning("⚠️ Modèles SpaCy non disponibles - Fonctionnalités limitées à TextBlob et VADER")
         return None, None
 
 # Chargement des modèles au démarrage
 nlp_en, nlp_fr = load_spacy_models()
-# Chargement de VADER avec cache
-@st.cache_resource(allow_output_mutation=True)
+
+@st.cache_resource
 def load_vader():
     """
     Charge et met en cache le modèle VADER.
@@ -38,7 +36,6 @@ def load_vader():
         return SentimentIntensityAnalyzer()
     except Exception as e:
         st.warning(f"⚠️ Erreur lors du chargement de VADER: {e}")
-        # Créer une version simplifiée si le téléchargement échoue
         class SimpleSentimentAnalyzer:
             def polarity_scores(self, text):
                 return {"compound": 0}
@@ -56,20 +53,9 @@ def load_spacy_model(lang):
     else:
         return nlp_en
 
-#@st.cache_data
 def analyze_sentiment(text, lang):
     """
-    Analyse de sentiment de base :
-    - Français : utilise TextBlob-FR (polarité)
-    - Anglais : utilise VADER (score compound)
-    Renvoie le label (Positif, Négatif, Neutre) et le score.
-    
-    Parameters:
-        text (str): Texte à analyser
-        lang (str): Langue de l'analyse ('fr' ou 'en')
-        
-    Returns:
-        tuple: (sentiment, score)
+    Analyse de sentiment de base
     """
     if not text or not isinstance(text, str) or text.strip() == "":
         return "Neutre", 0.0
@@ -90,21 +76,9 @@ def analyze_sentiment(text, lang):
         sentiment = "Neutre"
     return sentiment, score
 
-#@st.cache_data
 def analyze_text_advanced(text, lang):
     """
-    Réalise une analyse avancée du texte avec spaCy :
-    - Détecte si le texte contient une phrase exclamative.
-    - Vérifie la présence de négations.
-    - Extrait les entités nommées.
-    - Extrait les mots-clés (noms et adjectifs).
-    
-    Parameters:
-        text (str): Texte à analyser
-        lang (str): Langue de l'analyse ('fr' ou 'en')
-        
-    Returns:
-        dict: Dictionnaire contenant l'analyse avancée
+    Réalise une analyse avancée du texte avec fallback si SpaCy n'est pas disponible
     """
     if not text or not isinstance(text, str) or text.strip() == "":
         return {
@@ -116,6 +90,18 @@ def analyze_text_advanced(text, lang):
         }
         
     nlp = load_spacy_model(lang)
+    
+    # Vérifier si SpaCy est disponible
+    if nlp is None:
+        return {
+            "exclamative": "!" in text,
+            "negations": any(word in text.lower() for word in ["not", "no", "never", "pas", "non", "jamais"]),
+            "entities": [],
+            "keywords": text.split()[:10] if text else [],  # Mots simples comme fallback
+            "adjectives": [],
+            "message": "Analyse basique - SpaCy non disponible"
+        }
+    
     doc = nlp(text)
     
     # Détection de phrases exclamatives
@@ -127,11 +113,11 @@ def analyze_text_advanced(text, lang):
     # Extraction des entités nommées (texte et type)
     entities = [(ent.text, ent.label_) for ent in doc.ents]
     
-    # Extraction de mots-clés (lemmatisation des noms et adjectifs, exclusion des stop words)
+    # Extraction de mots-clés
     keywords = [token.lemma_.lower() for token in doc 
                 if token.pos_ in ["NOUN", "ADJ"] and not token.is_stop and token.is_alpha]
     
-    # Extraction des adjectifs uniquement (pour analyser la tonalité descriptive)
+    # Extraction des adjectifs
     adjectives = [token.lemma_.lower() for token in doc if token.pos_ == "ADJ"]
     
     return {
@@ -142,23 +128,15 @@ def analyze_text_advanced(text, lang):
         "adjectives": adjectives
     }
 
-#@st.cache_data
+@st.cache_data
 def get_tfidf_keywords(corpus, lang, max_features=20):
     """
     Extrait les mots-clés du corpus d'avis en utilisant TF-IDF.
-    
-    Parameters:
-        corpus (list): Liste des textes à analyser
-        lang (str): Langue de l'analyse ('fr' ou 'en')
-        max_features (int): Nombre maximum de mots-clés à extraire
-        
-    Returns:
-        list: Liste des mots-clés extraits
     """
     if not corpus or len(corpus) == 0:
         return []
         
-    # Définir manuellement les stop words français si nécessaire
+    # Définir les stop words selon la langue
     if lang == "fr":
         try:
             import nltk
@@ -169,13 +147,11 @@ def get_tfidf_keywords(corpus, lang, max_features=20):
             from nltk.corpus import stopwords
             stop_words = list(stopwords.words('french'))
         except:
-            # Liste de base des stop words français
             stop_words = ["le", "la", "les", "un", "une", "des", "et", "est", "en", "que", "qui", 
                         "pour", "dans", "ce", "cette", "ces", "il", "elle", "ils", "elles", 
                         "nous", "vous", "je", "tu", "on", "son", "sa", "ses", "mon", "ma", "mes",
                         "ton", "ta", "tes", "leur", "leurs", "de", "du", "au", "aux", "par", "avec"]
     else:
-        # Utiliser la liste prédéfinie pour l'anglais
         try:
             import nltk
             try:
@@ -192,20 +168,9 @@ def get_tfidf_keywords(corpus, lang, max_features=20):
     feature_names = vectorizer.get_feature_names_out()
     return list(feature_names)
 
-# Intégration avec EmotionClassifier et SocioEmotionalAnalyzer
-#@st.cache_data
 def get_combined_analysis(text, lang, emotion_classifier=None, socio_analyzer=None):
     """
     Combine les analyses de sentiment, d'émotion et socio-émotionnelle.
-    
-    Parameters:
-        text (str): Texte à analyser
-        lang (str): Langue de l'analyse ('fr' ou 'en')
-        emotion_classifier (EmotionClassifier, optional): Instance du classificateur d'émotions
-        socio_analyzer (SocioEmotionalAnalyzer, optional): Instance de l'analyseur socio-émotionnel
-        
-    Returns:
-        dict: Résultats combinés des analyses
     """
     # Analyse de base
     sentiment, score = analyze_sentiment(text, lang)
