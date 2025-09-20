@@ -9,7 +9,7 @@ def visualize_sentiments(df):
     """
     st.write("### Distribution des sentiments")
     plt.figure(figsize=(8, 5))
-    ax = sns.countplot(x="Sentiment", data=df, palette={"Positif": "green", "Neutre": "gray", "Négatif": "red"})
+    ax = sns.countplot(x="Sentiment", data=df, hue="Sentiment", palette={"Positif": "green", "Neutre": "gray", "Négatif": "red"}, legend=False)
     ax.set_xlabel("Sentiment")
     ax.set_ylabel("Nombre d'avis")
     st.pyplot(plt)
