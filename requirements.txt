@@ -19,3 +19,4 @@ tqdm
 textblob
 textblob-fr
 vadersentiment
+en_core_web_sm
