@@ -9,7 +9,6 @@ import os
 
 # Précise les modèles à l'avance et optimisation du chargement avec cache
 @st.cache_resource
-@st.cache_resource
 def load_spacy_models():
     """
     Charge et met en cache les modèles SpaCy avec fallback pour Streamlit Cloud.
