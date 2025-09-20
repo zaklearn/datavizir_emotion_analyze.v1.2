@@ -9,7 +9,10 @@ def visualize_sentiments(df):
     """
     st.write("### Distribution des sentiments")
     plt.figure(figsize=(8, 5))
-    ax = sns.countplot(x="Sentiment", data=df, hue="Sentiment", palette={"Positif": "green", "Neutre": "gray", "Négatif": "red"}, legend=False)
+    # Correction du warning seaborn
+    ax = sns.countplot(x="Sentiment", data=df, hue="Sentiment", 
+                      palette={"Positif": "green", "Neutre": "gray", "Négatif": "red"}, 
+                      legend=False)
     ax.set_xlabel("Sentiment")
     ax.set_ylabel("Nombre d'avis")
     st.pyplot(plt)
@@ -18,7 +21,17 @@ def generate_wordcloud(text, lang):
     """
     Génère et affiche un WordCloud à partir du texte fourni.
     """
-    wordcloud = WordCloud(width=800, height=400, background_color="white").generate(text)
+    # Définir les stop words selon la langue
+    if lang == "fr":
+        stop_words = ["le", "la", "les", "un", "une", "des", "et", "est", "en", "que", "qui", 
+                     "pour", "dans", "ce", "cette", "ces", "il", "elle", "ils", "elles"]
+    else:
+        stop_words = "english"
+    
+    wordcloud = WordCloud(width=800, height=400, 
+                         background_color="white",
+                         stopwords=stop_words,
+                         max_words=100).generate(text)
     plt.figure(figsize=(10, 5))
     plt.imshow(wordcloud, interpolation="bilinear")
     plt.axis("off")
