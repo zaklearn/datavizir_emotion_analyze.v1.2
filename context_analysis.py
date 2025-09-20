@@ -2,51 +2,42 @@ import spacy
 import streamlit as st
 
 class ContextAnalyzer:
-    def __init__(_self, lang="fr"):
+    def __init__(self, lang="fr"):
         """
-        Initialise l'analyseur de contexte avec le modèle approprié.
-        Réutilise les modèles SpaCy déjà chargés dans sentiment_analyzer.py.
-        
-        Parameters:
-            lang (str): Langue de l'analyse ('fr' ou 'en')
+        Initialise l'analyseur de contexte avec fallback pour Streamlit Cloud
         """
         try:
-            # Réutiliser les modèles pré-chargés via sentiment_analyzer
             from sentiment_analyzer import load_spacy_model
-            _self.nlp = load_spacy_model(lang)
-            _self.lang = lang
+            self.nlp = load_spacy_model(lang)
+            self.lang = lang
         except ImportError:
-            # Fallback si le modèle n'est pas disponible via sentiment_analyzer
-            if lang == "fr":
-                try:
-                    _self.nlp = spacy.load("fr_core_news_sm")
-                except OSError:
-                    import os
-                    os.system("python -m spacy download fr_core_news_sm")
-                    _self.nlp = spacy.load("fr_core_news_sm")
-            else:  # Anglais par défaut
-                try:
-                    _self.nlp = spacy.load("en_core_web_sm")
-                except OSError:
-                    import os
-                    os.system("python -m spacy download en_core_web_sm")
-                    _self.nlp = spacy.load("en_core_web_sm")
+            self.nlp = None
+            self.lang = lang
+            st.warning("⚠️ Analyseur de contexte en mode limité - SpaCy non disponible")
 
-    def analyze_context(_self, text):
+    def analyze_context(self, text):
         """
-        Retourne les entités et relations dans le texte.
-        Mise en cache avec Streamlit pour améliorer les performances.
-        
-        Parameters:
-            text (str): Texte à analyser
-            
-        Returns:
-            dict: Dictionnaire contenant les entités, relations et analyse syntaxique
+        Retourne les entités et relations dans le texte avec fallback
         """
         if not text or not isinstance(text, str):
             return {"entities": [], "dependencies": [], "syntactic_analysis": {}}
+        
+        # Fallback si SpaCy n'est pas disponible
+        if self.nlp is None:
+            return {
+                "entities": [],
+                "dependencies": [],
+                "syntactic_analysis": {
+                    "sentences": len(text.split('.')),
+                    "verbs": [],
+                    "subjects": [],
+                    "objects": [],
+                    "voice": "unknown",
+                    "message": "Analyse de contexte basique - SpaCy non disponible"
+                }
+            }
             
-        doc = _self.nlp(text)
+        doc = self.nlp(text)
         
         # Extraction des entités nommées
         entities = [(ent.text, ent.label_) for ent in doc.ents]
