@@ -10,13 +10,10 @@ nltk
 spacy
 torch
 transformers
-docx
 python-docx
 openpyxl
 PyMuPDF
 PyPDF2
 pdfplumber
 tqdm
-os-sys
 textblob
-wordcloud
