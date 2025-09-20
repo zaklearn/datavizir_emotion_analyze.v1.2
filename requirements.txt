@@ -7,7 +7,7 @@ plotly
 wordcloud
 scikit-learn
 nltk
-spacy
+#spacy
 torch
 transformers
 python-docx
