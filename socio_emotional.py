@@ -26,23 +26,31 @@ class SocioEmotionalAnalyzer:
             ]
             
         # Charger le modèle
-        self._load_model()
+        self._ensure_model_loaded()
         
+    @staticmethod
     @st.cache_resource
-    def _load_model(self):
+    def _load_model():
         """Charge le modèle zero-shot et le met en cache."""
+        try:
+            # Utiliser un modèle multilingue
+            model = pipeline(
+                "zero-shot-classification", 
+                model="facebook/bart-large-mnli",
+                device=-1  # CPU par défaut
+            )
+            st.success("✅ Modèle socio-émotionnel chargé avec succès.")
+            return model
+        except Exception as e:
+            st.warning(f"⚠️ Erreur lors du chargement du modèle socio-émotionnel: {e}")
+            return None
+    
+    def _ensure_model_loaded(self):
+        """
+        S'assure que le modèle est chargé dans le cache de classe.
+        """
         if SocioEmotionalAnalyzer._model is None:
-            try:
-                # Utiliser un modèle multilingue
-                SocioEmotionalAnalyzer._model = pipeline(
-                    "zero-shot-classification", 
-                    model="facebook/bart-large-mnli",
-                    device=-1  # CPU par défaut
-                )
-                st.success("✅ Modèle socio-émotionnel chargé avec succès.")
-            except Exception as e:
-                st.warning(f"⚠️ Erreur lors du chargement du modèle socio-émotionnel: {e}")
-                SocioEmotionalAnalyzer._model = None
+            SocioEmotionalAnalyzer._model = self._load_model()
     
     def analyze(self, text):
         """
